@@ -109,13 +109,13 @@ onPress(){
 
 ### LinearGradient
 
-A `View` that has a linear gradient applied to the background.
+A `View` that has a linear gradient applied to the background. Currently supports all 8 ordinal directions.
 
 ```javascript
 import { LinearGradient } from 'syr';
 
 render() {
-  return <LinearGradient colors={['#000000', '#FFFFFF']} style={{ height:150, width:300 }}/>
+  return <LinearGradient colors={['#000000', '#FFFFFF']} direction = {"rightToLeft"} style={{ height:150, width:300 }}/>
 }
 ```
 
@@ -250,6 +250,31 @@ render() {
           style={styles.notYouContainer}
         >
 }
+```
+### ContactsAPI
+Currently iOS only. Current capabilities to return all contacts and to request permissions to get contact information. Data for the contacts returned currently is: First Name, Last Name, Birthday, Profile Picture, Phone Number.
+
+```JavaScript
+{import NativeModules} from 'syr';
+//calls the requestPermissions functions at native layer
+  NativeModules.SyrContactManager.requestContactPermissions();
+
+//subscription for the requestContactPermissions, this event will be updated whenever User Accepts Rejects or the native layer throws an error. All of these things will be available in 'result'
+const subscription = NativeEventEmitter.addListener(
+  'contactRequestResult',
+  (event) => console.log(event.result)
+);
+
+//asks the native layer to return all Contacts
+fetchContacts() {
+  NativeModules.SyrContactManager.fetchAllContacts();
+}
+
+//results will contain an array of users with the above mentioned contact information. It can also contain an error if an error was thrown at the native layer
+const subscription = NativeEventEmitter.addListener(
+  'contactResults',
+  (event) => console.log(event.result)
+);
 ```
 
 ## Styling a component
@@ -471,10 +496,10 @@ SyrInstance.getInstance(this).sendEvent("FooParty", "party at my desk")
 JavaScript can subscribe to the events that are being passed down from the native layer.
 
 ```javascript
-import { NativeEventEmitter } from 'syr';
+import { EventEmitter } from 'syr';
 
 
-const subscription = NativeEventEmitter.addListener(
+const subscription = EventEmitter.addListener(
   'FooParty',
   (event) => console.log(event.name)
 );
@@ -682,7 +707,16 @@ protected void onCreate(Bundle savedInstanceState) {
 // MyNativeModule.java
 //
 
-public class SyrView implements SyrBaseModule {
+// There are two interfaces that a NativeModule could implement.
+
+// SyrComponent - Interface for a renderable NativeModule.
+// SyrBaseModule - Interface for any NativeModule that needs to be available
+// on the Javascript Environment.
+
+// So if your class is a renderable NativeModule like a View
+// it needs to implement both SyrBaseModule and SyrComponent.
+
+public class SyrView implements SyrBaseModule, SyrComponent {
   // this module provide a render stub
   @Override
   public View render(JSONObject component, Context context) {
@@ -702,6 +736,17 @@ public class SyrView implements SyrBaseModule {
 
   }
 }
+
+// If your class does not need to render it only needs to implement SyrBaseModule
+
+public class MyNativeLog implements SyrBaseModule {
+  @SyrMethod
+  public void Log(String message) {
+    Log.i("JSMessage", message);
+  }
+}
+
+
 ```
 
 Accessing the native modules from javascript.

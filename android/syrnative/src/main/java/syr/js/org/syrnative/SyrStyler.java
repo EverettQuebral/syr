@@ -1,7 +1,8 @@
 package syr.js.org.syrnative;
 
 import android.graphics.Color;
-import android.graphics.PorterDuff;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.LayerDrawable;
 import android.view.View;
@@ -11,8 +12,6 @@ import android.widget.RelativeLayout;
 
 import org.json.JSONException;
 import org.json.JSONObject;
-
-import java.lang.reflect.Array;
 
 /**
  * Created by dereanderson on 1/9/18.
@@ -52,8 +51,7 @@ public class SyrStyler{
     static public ViewGroup.LayoutParams styleLayout(JSONObject style) {
         RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(0,0);
         try {
-            Integer left = 0;
-            Integer top = 0;
+
 
             if(style.has("width")) {
 
@@ -66,16 +64,6 @@ public class SyrStyler{
                 params.height = style.getInt("height");
             }
 
-            if(style.has("left")) {
-                left = style.getInt("left");
-            }
-
-            if(style.has("top")) {
-                top = style.getInt("top");
-            }
-
-
-
         } catch (JSONException e) {
             e.printStackTrace();
         }
@@ -84,16 +72,23 @@ public class SyrStyler{
 
     static public void styleView(View component, JSONObject style) {
 
-        if(style.has("backgroundColor")) {
-            try {
-                String backgroundColor = style.getString("backgroundColor");
 
-                GradientDrawable gd = new GradientDrawable(
-                        GradientDrawable.Orientation.TOP_BOTTOM,
-                        new int[] {getColor(backgroundColor), getColor(backgroundColor)});
+            try {
+
+                GradientDrawable gd = new GradientDrawable();
+
+                Drawable[] layers = {gd};
+
+                LayerDrawable layerDrawable = new LayerDrawable(layers);
+                if(style.has("backgroundColor")) {
+                    String backgroundColor = style.getString("backgroundColor");
+                    gd = new GradientDrawable(
+                            GradientDrawable.Orientation.TOP_BOTTOM,
+                            new int[] {getColor(backgroundColor), getColor(backgroundColor)});
+                }
 
                 if(style.has("borderRadius")) {
-                    Integer borderRadius = style.getInt("borderRadius");
+                    float borderRadius = style.getInt("borderRadius");
                     gd.setCornerRadius(borderRadius);
                 }
 
@@ -106,11 +101,46 @@ public class SyrStyler{
                     gd.setStroke(3, getColor(style.getString("borderColor")));
                 }
 
-                component.setBackground(gd);
+                if(style.has("borderRightWidth") || style.has("borderLeftWidth")) {
+
+                    layerDrawable.setLayerInset(0, 6, -3, -3, -3);
+
+                    component.setBackground(layerDrawable);
+                } else {
+                    component.setBackground(gd);
+                }
 
             } catch (JSONException e) {
                 e.printStackTrace();
             }
-        }
+
+    }
+    //
+    static LayerDrawable getBorders(int bgColor, int borderColor,
+                                    int left, int top, int right, int bottom){
+        // Initialize new color drawables
+        ColorDrawable borderColorDrawable = new ColorDrawable(borderColor);
+        ColorDrawable backgroundColorDrawable = new ColorDrawable(bgColor);
+
+        // Initialize a new array of drawable objects
+        Drawable[] drawables = new Drawable[]{
+                borderColorDrawable,
+                backgroundColorDrawable
+        };
+
+        // Initialize a new layer drawable instance from drawables array
+        LayerDrawable layerDrawable = new LayerDrawable(drawables);
+
+        // Set padding for background color layer
+        layerDrawable.setLayerInset(
+                1, // Index of the drawable to adjust [background color layer]
+                left, // Number of pixels to add to the left bound [left border]
+                top, // Number of pixels to add to the top bound [top border]
+                right, // Number of pixels to add to the right bound [right border]
+                bottom // Number of pixels to add to the bottom bound [bottom border]
+        );
+
+        // Finally, return the one or more sided bordered background drawable
+        return layerDrawable;
     }
 }

@@ -15,16 +15,16 @@ import java.util.HashMap;
  * Created by dereanderson on 1/9/18.
  */
 
-public class SyrButton implements SyrBaseModule {
+public class SyrButton implements SyrBaseModule, SyrComponent {
 
     @Override
     public View render(JSONObject component, Context context, View instance) {
         Button button;
 
-        if(instance != null) {
+        if (instance != null) {
             button = (Button) instance;
         } else {
-            button =  new Button(context);
+            button = new Button(context);
         }
 
         button.setAllCaps(false);
@@ -32,13 +32,13 @@ public class SyrButton implements SyrBaseModule {
 
         try {
             JSONObject jsonInstance = component.getJSONObject("instance");
-            JSONObject jsonAttributes =  jsonInstance.getJSONObject("attributes");
-            final String guid  = component.getString("guid");
+            JSONObject jsonProps = jsonInstance.getJSONObject("props");
+            final String uuid = component.getString("uuid");
 
             // if enabled prop is passed set it, else default to true
             Boolean isEnabled;
-            if (jsonAttributes.has("enabled")) {
-                isEnabled = jsonAttributes.getBoolean("enabled");
+            if (jsonProps.has("enabled")) {
+                isEnabled = jsonProps.getBoolean("enabled");
             } else {
                 isEnabled = true;
             }
@@ -50,19 +50,38 @@ public class SyrButton implements SyrBaseModule {
                 button.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        HashMap<String, String> eventMap = new HashMap<String, String>();
-                        eventMap.put("type", "onPress");
-                        eventMap.put("guid", guid);
-                        SyrEventHandler.getInstance().sendEvent(eventMap);
+                        try {
+                            JSONObject eventMap = new JSONObject();
+                            eventMap.put("type", "onPress");
+                            eventMap.put("guid", uuid);
+                            SyrEventHandler.getInstance().sendEvent(eventMap);
+                        } catch (JSONException e) {
+                            e.printStackTrace();
+                        }
+
                     }
                 });
             }
 
             // set button styles
-            if (component.has("attributes") && component.getJSONObject("attributes").has("style")){
+            if (jsonInstance.has("style")) {
 
-                style = component.getJSONObject("attributes").getJSONObject("style");
-                button.setLayoutParams(SyrStyler.styleLayout(style));
+                style = jsonInstance.getJSONObject("style");
+                if (instance == null) {
+                    button.setLayoutParams(SyrStyler.styleLayout(style));
+                } else {
+                    if (style.has("width")) {
+
+                        button.getLayoutParams().width = style.getInt("width");
+
+                    }
+
+                    if (style.has("height")) {
+
+                        button.getLayoutParams().height = style.getInt("height");
+                    }
+                    button.setLayoutParams(button.getLayoutParams());
+                }
                 SyrStyler.styleView(button, style);
 
                 if (style.has("color")) {
@@ -70,23 +89,22 @@ public class SyrButton implements SyrBaseModule {
                 }
 
                 if (style.has("fontWeight")) {
-                    if (style.getString("fontWeight").contains("bold")){
+                    if (style.getString("fontWeight").contains("bold")) {
                         button.setTypeface(null, Typeface.BOLD);
                     }
                 }
 
-                if(style.has("left")) {
+                if (style.has("left")) {
                     button.setX(style.getInt("left"));
                 }
 
-                if(style.has("top")) {
+                if (style.has("top")) {
                     button.setY(style.getInt("top"));
                 }
 
 
             }
-
-             // set button label/text
+            // set button label/text
             button.setText(jsonInstance.getString("value"));
 
         } catch (JSONException e) {

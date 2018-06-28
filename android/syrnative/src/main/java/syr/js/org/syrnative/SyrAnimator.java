@@ -24,7 +24,7 @@ import java.util.HashMap;
 public class SyrAnimator {
     // todo: width and height
     // do we need two of these? borrow this from the raster?
-    static private Handler uiHandler = new Handler(Looper.getMainLooper());
+    static private Handler animationHandler = new Handler(Looper.getMainLooper());
     static private HashMap<View, ObjectAnimator> animationCache = new HashMap<>();
 
     static private String determineAnimationType(JSONObject animationDict) {
@@ -48,11 +48,15 @@ public class SyrAnimator {
 
             @Override
             public void onAnimationEnd(final Animator animation) {
-                    HashMap<String, String> eventMap = new HashMap<>();
+                try {
+                    JSONObject eventMap = new JSONObject();
                     eventMap.put("type", "animationComplete");
                     eventMap.put("animation", jsonAnimation.toString());
                     eventMap.put("guid", guid);
                     bridge.sendEvent(eventMap);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
             }
 
             @Override
@@ -69,11 +73,12 @@ public class SyrAnimator {
         if(animationType == "animateComponentXY") {
 
 
-            bridge.mRaster.uiHandler.post(new Runnable() {
+            animationHandler.post(new Runnable() {
                 @Override
                 public void run() {
 
                     AnimatorSet mover = null;
+
                     Integer fromX = null;
                     Integer fromY  = null;
                     Integer toX = null;
@@ -88,11 +93,11 @@ public class SyrAnimator {
                         if(animationDict.has("x2") && animationDict.has("y2")) {
                             mover = new AnimatorSet();
                         }
-
+                        //@TODO taking out fromX and fromY for now to get smooth working. Need to figure out a better way to do it
                         if(animationDict.has("x2")) {
                             fromX = animationDict.getInt("x");
                             toX = animationDict.getInt("x2");
-                            xAnimation = ObjectAnimator.ofFloat(component, "x", fromX, toX);
+                            xAnimation = ObjectAnimator.ofFloat(component, "x", toX);
                             xAnimation.setDuration(duration);
 
                             xAnimation.setInterpolator(new AccelerateDecelerateInterpolator());
@@ -101,7 +106,7 @@ public class SyrAnimator {
                         if(animationDict.has("y2")) {
                             fromY = animationDict.getInt("y");
                             toY = animationDict.getInt("y2");
-                            yAnimation = ObjectAnimator.ofFloat(component, "y", fromY, toY);
+                            yAnimation = ObjectAnimator.ofFloat(component, "y", toY);
                             yAnimation.setDuration(duration);
 
                             yAnimation.setInterpolator(new AccelerateDecelerateInterpolator());
@@ -157,11 +162,11 @@ public class SyrAnimator {
                 }
 
                 final String finalPropertyName = propertyName;
-                bridge.mRaster.uiHandler.post(new Runnable() {
+                animationHandler.post(new Runnable() {
                     @Override
                     public void run() {
                         ObjectAnimator anim;
-                        if(animationCache.containsKey(component)) {
+                        if(animationCache.containsKey(component) && !finalPropertyName.contains("alpha")) {
                             anim = animationCache.get(component);
                         } else {
                             anim = ObjectAnimator.ofFloat(component, finalPropertyName, fromValue, toValue); // rotationX, rotationY
@@ -188,7 +193,7 @@ public class SyrAnimator {
                     @Override
                     public void onAnimationUpdate(final ValueAnimator animation) {
 
-                        bridge.mRaster.uiHandler.post(new Runnable() {
+                        animationHandler.post(new Runnable() {
                             @Override
                             public void run() {
                                 // get the value the interpolator is at
@@ -209,19 +214,22 @@ public class SyrAnimator {
                     @Override
                     public void onAnimationEnd(Animator animation)
                     {
-                        bridge.mRaster.uiHandler.post(new Runnable() {
+                        animationHandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                HashMap<String, String> eventMap = new HashMap<>();
-                                eventMap.put("type", "animationComplete");
-                                eventMap.put("animation", jsonAnimation.toString());
-                                eventMap.put("guid", guid);
-                                bridge.sendEvent(eventMap);
+                                try {
+                                    JSONObject eventMap = new JSONObject();
+                                    eventMap.put("type", "animationComplete");
+                                    eventMap.put("animation", jsonAnimation.toString());
+                                    eventMap.put("guid", guid);
+                                    bridge.sendEvent(eventMap);
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
                             }
                         });
                     }
                 });
-
                 valueAnimator.start();
             }
 
@@ -234,7 +242,7 @@ public class SyrAnimator {
                     @Override
                     public void onAnimationUpdate(final ValueAnimator animation) {
 
-                        bridge.mRaster.uiHandler.postDelayed(new Runnable() {
+                        animationHandler.post(new Runnable() {
                             @Override
                             public void run() {
                                 // get the value the interpolator is at
@@ -245,7 +253,7 @@ public class SyrAnimator {
                                 // this layouts height change
                                 component.requestLayout();
                             }
-                        }, 120);
+                        });
 
                     }
                 });
@@ -255,20 +263,22 @@ public class SyrAnimator {
                     @Override
                     public void onAnimationEnd(Animator animation)
                     {
-                        bridge.mRaster.uiHandler.post(new Runnable() {
+                        animationHandler.post(new Runnable() {
                             @Override
                             public void run() {
-                                HashMap<String, String> eventMap = new HashMap<>();
-                                eventMap.put("type", "animationComplete");
-                                eventMap.put("animation", jsonAnimation.toString());
-                                eventMap.put("guid", guid);
-                                bridge.sendEvent(eventMap);
+                                try {
+                                    JSONObject eventMap = new JSONObject();
+                                    eventMap.put("type", "animationComplete");
+                                    eventMap.put("animation", jsonAnimation.toString());
+                                    eventMap.put("guid", guid);
+                                    bridge.sendEvent(eventMap);
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
                             }
                         });
                     }
                 });
-
-
                 valueAnimator.start();
             }
         }

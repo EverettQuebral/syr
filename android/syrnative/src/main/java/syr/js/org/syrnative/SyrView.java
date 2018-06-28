@@ -13,42 +13,59 @@ import org.json.JSONObject;
  * https://syr.js.org
  * Created by Derek Anderson on 1/8/18.
  */
-public class SyrView implements SyrBaseModule {
+public class SyrView implements SyrBaseModule, SyrComponent {
 
     @Override
     public View render(JSONObject component, Context context, View instance) {
 
         RelativeLayout layout;
-        if(instance != null) {
+        if (instance != null) {
             layout = (RelativeLayout) instance;
         } else {
             layout = new RelativeLayout(context);
         }
 
-        // word on the street is this should only be used for animations?
-        // these are not free
-        layout.setLayerType(View.LAYER_TYPE_HARDWARE, null);
 
         JSONObject style = null;
         try {
-            JSONObject attributes = component.getJSONObject("attributes");
-            if(attributes.has("style")){
-                style = attributes.getJSONObject("style");
-                layout.setLayoutParams(SyrStyler.styleLayout(style));
+            JSONObject componentInstance = component.getJSONObject("instance");
+            if (componentInstance.has("style")) {
+                style = componentInstance.getJSONObject("style");
+                if (instance == null) {
+                    layout.setLayoutParams(SyrStyler.styleLayout(style));
 
-                if(style.has("left")) {
+                } else {
+
+                    if (style.has("width")) {
+
+                        layout.getLayoutParams().width = style.getInt("width");
+
+                    }
+
+                    if (style.has("height")) {
+
+                        layout.getLayoutParams().height = style.getInt("height");
+                    }
+                    layout.setLayoutParams(layout.getLayoutParams());
+
+                }
+                if (style.has("left")) {
                     layout.setX(style.getInt("left"));
                 }
 
-                if(style.has("top")) {
+                if (style.has("top")) {
                     layout.setY(style.getInt("top"));
                 }
 
+                if (style.has("opacity")) {
+                    layout.setAlpha(style.getInt("opacity"));
+                }
                 SyrStyler.styleView(layout, style);
 
-                if(style.has("overflow")) {
+
+                if (style.has("overflow")) {
                     String overflow = style.getString("overflow");
-                    if(overflow.contains("hidden")) {
+                    if (overflow.contains("hidden")) {
                         layout.setClipChildren(true);
                     } else {
                         layout.setClipChildren(false);
